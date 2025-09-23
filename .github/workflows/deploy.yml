@@ -3,7 +3,7 @@ name: Deploy to Azure VM
 on:
   push:
     branches:
-      - main   # Change if your repo’s default branch is different
+      - main
 
 jobs:
   deploy:
@@ -33,9 +33,9 @@ jobs:
         script: |
           cd /home/${{ secrets.AZURE_USER }}
 
-          # Clone repo if missing (use PAT for private repo)
+          # Clone repo if missing (with PAT auth)
           if [ ! -d "myapp" ]; then
-            git clone https://${{ secrets.GH_PAT }}@github.com/${{ github.repository }} myapp
+            git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ github.repository }} myapp
           fi
 
           # Update repo
