@@ -29,6 +29,24 @@ function App() {
     }
   }
 
+  // Toggle completed status
+  const toggleTodo = async (id, currentStatus) => {
+    try {
+      const res = await fetch('/api/updateTodos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, completed: !currentStatus })
+      })
+      const updated = await res.json()
+
+      setTodos(todos.map(todo => 
+        todo._id === updated._id ? updated : todo
+      ))
+    } catch (err) {
+      console.error('Error updating todo:', err)
+    }
+  }
+
   return (
     <>
       <h1>HopeFully It will get updated</h1>
@@ -45,7 +63,16 @@ function App() {
 
       <ul>
         {todos.map((todo) => (
-          <li key={todo._id}>{todo.title}</li>
+          <li key={todo._id}>
+            <label>
+              <input
+                type="checkbox"
+                checked={todo.completed}
+                onChange={() => toggleTodo(todo._id, todo.completed)}
+              />
+              {todo.title}
+            </label>
+          </li>
         ))}
       </ul>
     </>

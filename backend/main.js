@@ -15,7 +15,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // GET /api/getTodos → fetch all todos
 app.get('/api/getTodos', async (req, res) => {
-    console.log("Received request for /api/getTodos");
+  console.log("Received request for /api/getTodos");
   try {
     const todos = await Todo.find();
     res.json(todos);
@@ -31,7 +31,7 @@ app.post('/api/addTodos', async (req, res) => {
     if (!title) {
       return res.status(400).json({ error: 'Title is required' });
     }
-    const newTodo = new Todo({ title });
+    const newTodo = new Todo({ title, completed: false });
     const savedTodo = await newTodo.save();
     res.status(201).json(savedTodo);
   } catch (err) {
@@ -39,9 +39,33 @@ app.post('/api/addTodos', async (req, res) => {
   }
 });
 
+// POST /api/updateTodos → update "completed" flag
+app.post('/api/updateTodos', async (req, res) => {
+  try {
+    const { id, completed } = req.body;
+
+    if (!id) {
+      return res.status(400).json({ error: 'Todo ID is required' });
+    }
+
+    const updatedTodo = await Todo.findByIdAndUpdate(
+      id,
+      { completed: completed },
+      { new: true } // return updated doc
+    );
+
+    if (!updatedTodo) {
+      return res.status(404).json({ error: 'Todo not found' });
+    }
+
+    res.json(updatedTodo);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 
 app.get("/api/test", (req, res) => {
-    res.send("Test is successful");
+  res.send("Test is successful");
 });
 
 // Start server
