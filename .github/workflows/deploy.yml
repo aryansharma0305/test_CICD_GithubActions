@@ -1,0 +1,57 @@
+name: Deploy to Azure VM
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+
+    - name: Build frontend
+      working-directory: frontend
+      run: |
+        npm install
+        npm run build
+
+    - name: Deploy to Azure VM
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.AZURE_HOST }}
+        username: ${{ secrets.AZURE_USER }}
+        password: ${{ secrets.AZURE_PASSWORD }}
+        script: |
+          # Navigate or clone app
+          cd /home/${{ secrets.AZURE_USER }}/myapp || git clone https://github.com/${{ github.repository }} myapp && cd myapp
+
+          # Reset repo to latest
+          git fetch --all
+          git reset --hard origin/main
+
+          # Backend setup
+          cd backend
+          npm install
+
+          # Frontend build
+          cd ../frontend
+          npm install
+          npm run build
+
+          # Deploy build to Nginx
+          sudo rm -rf /var/www/myapp/*
+          sudo cp -r dist/* /var/www/myapp/
+
+          # Restart backend with PM2
+          cd ../backend
+          pm2 restart myapp-backend || pm2 start npm --name myapp-backend -- start
+          pm2 save
