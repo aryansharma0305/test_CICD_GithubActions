@@ -39,5 +39,10 @@ app.post('/api/addTodos', async (req, res) => {
   }
 });
 
+
+app.get("/test", (req, res) => {
+    res.send("Test is successful");
+});
+
 // Start server
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
