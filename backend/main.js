@@ -40,7 +40,7 @@ app.post('/api/addTodos', async (req, res) => {
 });
 
 
-app.get("/test", (req, res) => {
+app.get("/api/test", (req, res) => {
     res.send("Test is successful");
 });
 
