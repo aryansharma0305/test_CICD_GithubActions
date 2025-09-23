@@ -3,7 +3,7 @@ name: Deploy to Azure VM
 on:
   push:
     branches:
-      - main
+      - main   # adjust if your main branch is different
 
 jobs:
   deploy:
@@ -30,28 +30,27 @@ jobs:
         host: ${{ secrets.AZURE_HOST }}
         username: ${{ secrets.AZURE_USER }}
         password: ${{ secrets.AZURE_PASSWORD }}
-        envs: GH_PAT
         script: |
-          cd /home/${{ secrets.AZURE_USER }}
+          cd /home/${{ secrets.AZURE_USER }}/myapp
 
-          if [ ! -d "myapp" ]; then
-            git clone https://x-access-token:$GH_PAT@github.com/${{ github.repository }} myapp
-          fi
-
-          cd myapp
+          # Update repo
           git fetch --all
           git reset --hard origin/main
 
+          # Backend setup
           cd backend
           npm install
 
+          # Frontend build
           cd ../frontend
           npm install
           npm run build
 
+          # Deploy build to Nginx
           sudo rm -rf /var/www/myapp/*
           sudo cp -r dist/* /var/www/myapp/
 
+          # Restart backend with PM2 (using npm start)
           cd ../backend
           pm2 restart myapp-backend || pm2 start npm --name myapp-backend -- start
           pm2 save
