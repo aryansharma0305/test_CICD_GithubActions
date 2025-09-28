@@ -1,72 +1,64 @@
 require('dotenv').config();
 const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
 const connectDB = require('./config/connection');
 const Todo = require('./models/Todo');
 
 const app = express();
+const server = http.createServer(app); 
+
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:5173", 
+    methods: ["GET", "POST"],
+  },
+})
+
+
 const PORT = process.env.PORT || 5000;
 
-// Connect to MongoDB
+
 connectDB();
 
-// Middleware
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// GET /api/getTodos → fetch all todos
-app.get('/api/getTodos', async (req, res) => {
-  console.log("Received request for /api/getTodos");
-  try {
-    const todos = await Todo.find();
-    res.json(todos);
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
-  }
+
+io.on("connection", (socket) => {
+  console.log("Client connected:", socket.id);
+
+  socket.on("disconnect", () => {
+    console.log("Client disconnected:", socket.id);
+  });
 });
 
-// POST /api/addTodos → add a new todo
-app.post('/api/addTodos', async (req, res) => {
-  try {
-    const { title } = req.body;
-    if (!title) {
-      return res.status(400).json({ error: 'Title is required' });
-    }
-    const newTodo = new Todo({ title, completed: false });
-    const savedTodo = await newTodo.save();
-    res.status(201).json(savedTodo);
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
-  }
+
+
+
+
+app.post("/api/play-sound", (req, res) => {
+  const { message } = req.body;
+  if (!message) return res.status(400).json({ error: "Message is required" });
+
+  io.emit("playSound", { message });
+
+  res.json({ success: true, message: "Sound play request sent", data: message });
+
 });
 
-// POST /api/updateTodos → update "completed" flag
-app.post('/api/updateTodos', async (req, res) => {
-  try {
-    const { id, completed } = req.body;
 
-    if (!id) {
-      return res.status(400).json({ error: 'Todo ID is required' });
-    }
 
-    const updatedTodo = await Todo.findByIdAndUpdate(
-      id,
-      { completed: completed },
-      { new: true } // return updated doc
-    );
 
-    if (!updatedTodo) {
-      return res.status(404).json({ error: 'Todo not found' });
-    }
 
-    res.json(updatedTodo);
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+
+
+
 
 app.get("/api/test", (req, res) => {
   res.send("Test is successful");
 });
 
-// Start server
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

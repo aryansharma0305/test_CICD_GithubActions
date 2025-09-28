@@ -1,81 +1,100 @@
-import { useState, useEffect } from 'react'
+import React, { useEffect } from "react"
+import { io } from "socket.io-client"
+
+const socket = io("http://localhost:5000", {
+  transports: ["websocket"], // force WebSocket, avoid polling fallback
+})
+
+
+const notes = ["c6", "d6", "e6", "f6", "g6", "a6", "b6"]
+
+const effects = {
+  ascend: ["c6", "d6", "e6", "g6", "a6"],
+  descend: ["a6", "g6", "f6", "d6", "c6"],
+  pingpong: ["c6", "g6", "e6", "a6", "f6", "d6"],
+  chime: ["c6", "e6", "g6", "c6", "g6", "e6", "c6"],
+  tension: ["e6", "f6", "g6", "a6", "g6", "c6"],
+}
 
 function App() {
-  const [todos, setTodos] = useState([])
-  const [newTodo, setNewTodo] = useState('')
-
-  // Fetch todos on mount
   useEffect(() => {
-    fetch('/api/getTodos')
-      .then(res => res.json())
-      .then(data => setTodos(data))
-      .catch(err => console.error('Error fetching todos:', err))
+    socket.on("connect", () => {
+      console.log("Connected:", socket.id)
+    })
+
+    socket.on("playSound", (data) => {
+      console.log("PlaySound event:", data)
+      // payload is like "A6", convert to lowercase for filename
+      const note = data.message.toLowerCase()
+      playNote(note)
+    })
+
+    return () => {
+      socket.off("connect")
+      socket.off("playSound")
+    }
   }, [])
 
-  // Add a new todo
-  const addTodo = async () => {
-    if (!newTodo.trim()) return
-    try {
-      const res = await fetch('/api/addTodos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: newTodo })
-      })
-      const data = await res.json()
-      setTodos([...todos, data]) // append new todo
-      setNewTodo('') // clear input
-    } catch (err) {
-      console.error('Error adding todo:', err)
-    }
+  const playNote = (note) => {
+    const audio = new Audio(`/${note}.mp3`) // files are in public/
+    audio.currentTime = 0
+    audio.play()
   }
 
-  // Toggle completed status
-  const toggleTodo = async (id, currentStatus) => {
-    try {
-      const res = await fetch('/api/updateTodos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, completed: !currentStatus })
-      })
-      const updated = await res.json()
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
-      setTodos(todos.map(todo => 
-        todo._id === updated._id ? updated : todo
-      ))
-    } catch (err) {
-      console.error('Error updating todo:', err)
+  const playEffect = async (name) => {
+    const sequence = effects[name]
+    for (let i = 0; i < sequence.length; i++) {
+      playNote(sequence[i])
+      await wait(600)
     }
   }
 
   return (
-    <>
-      <h1>Very Simple Todo App</h1>
+    <div
+      style={{
+        fontFamily: "Arial, sans-serif",
+        textAlign: "center",
+        padding: "40px",
+        background: "#0f1724",
+        color: "#e6eef8",
+        minHeight: "100vh",
+      }}
+    >
+      <h1>Play Notes & Sound Effects</h1>
 
-      <div style={{ marginBottom: '1rem' }}>
-        <input
-          type="text"
-          placeholder="Enter todo"
-          value={newTodo}
-          onChange={(e) => setNewTodo(e.target.value)}
-        />
-        <button onClick={addTodo}>Add Todo</button>
+      {/* Note Buttons */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", justifyContent: "center", marginBottom: "20px" }}>
+        {notes.map((note) => (
+          <button
+            key={note}
+            onClick={() => playNote(note)}
+            style={{
+              padding: "12px 20px",
+              fontSize: "16px",
+              fontWeight: "bold",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer",
+              background: "#ff7a59",
+              color: "#fff",
+            }}
+          >
+            {note.toUpperCase()}
+          </button>
+        ))}
       </div>
 
-      <ul>
-        {todos.map((todo) => (
-          <li key={todo._id}>
-            <label>
-              <input
-                type="checkbox"
-                checked={todo.completed}
-                onChange={() => toggleTodo(todo._id, todo.completed)}
-              />
-              {todo.title}
-            </label>
-          </li>
-        ))}
-      </ul>
-    </>
+      <h2>Sound Effects</h2>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", justifyContent: "center" }}>
+        <button onClick={() => playEffect("ascend")}>▶ Ascending Scale</button>
+        <button onClick={() => playEffect("descend")}>▶ Descending Scale</button>
+        <button onClick={() => playEffect("pingpong")}>▶ Ping-Pong</button>
+        <button onClick={() => playEffect("chime")}>▶ Triad Chime</button>
+        <button onClick={() => playEffect("tension")}>▶ Tension → Resolution</button>
+      </div>
+    </div>
   )
 }
 
