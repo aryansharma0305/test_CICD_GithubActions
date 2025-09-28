@@ -6,7 +6,7 @@ const socket = io("/", {
 })
 
 
-const notes = ["c6", "d6", "e6", "f6", "g6", "a6", "b6"]
+const notes = ["c6", "d6", "e6", "f6", "g6", "a6", "b6","tmkc"]
 
 const effects = {
   ascend: ["c6", "d6", "e6", "g6", "a6"],
