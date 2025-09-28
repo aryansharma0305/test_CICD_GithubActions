@@ -10,10 +10,13 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173", 
+    origin: "*", // or your domain if you want to lock it down
     methods: ["GET", "POST"],
   },
 })
+
+// if you're behind nginx or any reverse proxy:
+app.set("trust proxy", 1)
 
 
 const PORT = process.env.PORT || 5000;
